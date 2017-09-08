@@ -1,2 +1,2 @@
 # ggService
-Camel Service for ggTracker
+Camel service for ggTracker
