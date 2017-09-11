@@ -1,2 +1,2 @@
 # ggService
-FUSE Service for ggTracker
+Camel service for ggTracker
