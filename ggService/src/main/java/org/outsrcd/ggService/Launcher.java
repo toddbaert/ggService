@@ -10,7 +10,7 @@ public class Launcher {
 	public static void main(String... args) throws Exception {		
 		
 		// if no arg for replay directory to scan, 
-		if (args[0] == null)
+		if (args == null || args.length < 1)
 		{
 			System.out.println("Must provide argument for directory to be scanned");
 			System.exit(1);

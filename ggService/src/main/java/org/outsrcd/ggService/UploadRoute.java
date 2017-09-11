@@ -45,8 +45,9 @@ public class UploadRoute extends RouteBuilder {
 	public void configure() throws Exception {
 
 		// scan replay directory every 60 seconds for new replay, only looking for files without '_processed' marker
-		from("file:" + replayDir + 
-				"/?recursive=true&delay=60000&filterFile=${file:onlyname} not contains '_processed'")
+		from("file:" + replayDir + "/"
+				+ "?recursive=true&delay=60000"
+				+ "&filterFile=${file:onlyname} not contains '_processed' and ${file:onlyname} contains '.SC2Replay'")
 
 			// throttle to 1 upload per second max as per ggTracker maintainer request
 			.throttle(1)
