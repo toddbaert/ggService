@@ -27,17 +27,22 @@ public class MultipartUploadBean {
 
 	public void send(Exchange exchange) throws Exception {
 
+		
 		Map<String, Object> formData = exchange.getIn().getHeaders();
 
 		File f = exchange.getIn().getBody(File.class);
 		HttpEntity entity = MultipartEntityBuilder.create()
 			.setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+			
+			// add the text params retreived from the signutre request
 			.addTextBody("key", (String) formData.get("key"))
 			.addTextBody("AWSAccessKeyId", config.getProperty("config.s3.accesskeyid"))
 			.addTextBody("acl", (String) config.getProperty("config.s3.acl"))
 			.addTextBody("policy", (String) formData.get("policy"))
 			.addTextBody("signature", (String) formData.get("signature"))
 			.addTextBody("success_action_status", "201")
+			
+			// add the file to be uploaded
 			.addBinaryBody("file", f)
 			.build();
 
