@@ -41,7 +41,7 @@ public class UploadRoute extends RouteBuilder {
 			
 			// throttle to 1 upload per second max as per ggTracker request
 			.throttle(1)
-			.log("found ${file:onlyname}")
+			.log(">>> found ${file:onlyname}")
 			
 			// make request to sign the upload for s3 using enrich EIP
 			.setHeader(Exchange.HTTP_QUERY, simple("doc[title]=${file:onlyname}"))
