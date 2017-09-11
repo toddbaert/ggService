@@ -20,7 +20,7 @@ public class Launcher {
 		SimpleRegistry reg = new SimpleRegistry();
 		reg.put("uploadBean", uploadBean);
 
-		// add properties file to classpath
+		// get properties file so we can add it to the context
 		PropertiesComponent props = new PropertiesComponent();
 		props.setLocation("classpath:config.properties");
 

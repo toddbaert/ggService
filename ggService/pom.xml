@@ -178,6 +178,7 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<!-- for executable jar support -->
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<executions>
