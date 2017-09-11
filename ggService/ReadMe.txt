@@ -7,4 +7,4 @@ To build this project use
 
 To run the project you can execute the following Maven goal
 
-    mvn exec:java or execute the sandalone jar (camel-java-1.0.0-SNAPSHOT-jar-with-dependencies.jar)
+    mvn exec:java or execute the standalone jar (camel-java-1.0.0-SNAPSHOT-jar-with-dependencies.jar)
