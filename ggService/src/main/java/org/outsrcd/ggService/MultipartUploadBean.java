@@ -30,14 +30,15 @@ public class MultipartUploadBean {
 		Map<String, Object> formData = exchange.getIn().getHeaders();
 
 		File f = exchange.getIn().getBody(File.class);
-		HttpEntity entity = MultipartEntityBuilder.create().setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+		HttpEntity entity = MultipartEntityBuilder.create()
+			.setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
 			.addTextBody("key", (String) formData.get("key"))
 			.addTextBody("AWSAccessKeyId", config.getProperty("config.s3.accesskeyid"))
 			.addTextBody("acl", (String) config.getProperty("config.s3.acl"))
 			.addTextBody("policy", (String) formData.get("policy"))
 			.addTextBody("signature", (String) formData.get("signature"))
 			.addTextBody("success_action_status", "201")
-			.addBinaryBody((String) "file", f)
+			.addBinaryBody("file", f)
 			.build();
 
 		HttpPost httpPost = new HttpPost("http://" + config.getProperty("config.s3.host"));
