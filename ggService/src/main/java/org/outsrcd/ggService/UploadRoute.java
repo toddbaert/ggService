@@ -11,15 +11,9 @@ import org.apache.camel.processor.aggregate.AggregationStrategy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class UploadRoute extends RouteBuilder {
-	
-	String replayDir;
-	
-	public UploadRoute(String replayDir) {
-		this.replayDir = replayDir;
-	}
 
 	class SignatureRequestAggregationStrategy implements AggregationStrategy {
-		
+
 		@SuppressWarnings("unchecked")
 		@Override
 		public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
@@ -31,12 +25,12 @@ public class UploadRoute extends RouteBuilder {
 			} catch (Exception e) {
 				log.error("Error parsing signature response", e);
 			}
-			
+
 			// add data from signature request (newExchange) into file data (oldExchange)
 			responseMap.forEach((key, value) -> {
 				oldExchange.getIn().setHeader(key, value);
 			});
-			
+
 			return oldExchange;
 		}
 	}
@@ -44,28 +38,43 @@ public class UploadRoute extends RouteBuilder {
 	@Override
 	public void configure() throws Exception {
 
-		// scan replay directory every 60 seconds for new replay, only looking for files without '_processed' marker
-		from("file:" + replayDir + "/"
+		// scan replay directory every 60 seconds for new replay, only looking unprocessed files
+		from("file:" + System.getProperty("replayDir") + "/"
 				+ "?recursive=true&delay=60000"
 				+ "&filterFile=${file:onlyname} not contains '_processed' and ${file:onlyname} contains '.SC2Replay'")
 
 			// throttle to 1 upload per second max as per ggTracker maintainer request
-			.throttle(1)
-			.log(">>> found ${file:onlyname}")
-			
+			.throttle(1).log(">>> found ${file:onlyname}")
+
 			// make request to sign the upload for s3 using enrich EIP
 			.setHeader(Exchange.HTTP_QUERY, simple("doc[title]=${file:onlyname}"))
 			.setHeader(Exchange.HTTP_METHOD, constant(HttpMethods.GET))
-			.enrich("http4://{{config.signature.host}}", new SignatureRequestAggregationStrategy())
-			
-			// perform multipart upload to s3
+			.enrich("http4://{{config.signature.url}}", new SignatureRequestAggregationStrategy())
+
+			// perform login to ggTracker
 			.doTry()
-				.to("bean:uploadBean?method=send")
-			.endDoTry()			
+				.to("bean:httpPostBean?method=login")
+			.endDoTry()
 			.doCatch(Exception.class)
 				.log(">>> message: ${exception.message}")
 			.end()
-			
+
+			// perform multipart upload to s3
+			.doTry()
+				.to("bean:httpPostBean?method=upload")
+			.endDoTry()
+			.doCatch(Exception.class)
+				.log(">>> message: ${exception.message}")
+			.end()
+
+			// link s3 upload to ggTracker
+			.doTry()
+				.to("bean:httpPostBean?method=linkUpload")
+			.endDoTry()
+			.doCatch(Exception.class)
+				.log(">>> message: ${exception.message}")
+			.end()
+
 			// rename file to prevent duplicate uploads
 			.to("file:?fileName=${file:parent}/${file:name.noext}_processed.SC2Replay");
 	}
