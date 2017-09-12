@@ -18,12 +18,12 @@ public class Launcher {
 			System.setProperty("user", args[1]);
 			System.setProperty("password", args[2]);
 		}
-
+		
 		SimpleRegistry reg = new SimpleRegistry();
 		
 		// add the MultipartUploadBean to registry, so we can access it in routes
-		HttpPostBean httpPostBean = new HttpPostBean();
-		reg.put("httpPostBean", httpPostBean);
+		MultipartUploadBean multipartUploadBean = new MultipartUploadBean();
+		reg.put("multipartUploadBean", multipartUploadBean);
 
 		// get properties file so we can add it to the context
 		PropertiesComponent props = new PropertiesComponent();

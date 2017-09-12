@@ -36,10 +36,10 @@ public class UploadRoute extends RouteBuilder {
 	}
 
 	@Override
-	public void configure() throws Exception {
+	public void configure() throws Exception {		
 
 		// scan replay directory every 60 seconds for new replay, only looking unprocessed files
-		from("file:" + System.getProperty("replayDir") + "/"
+		from("file:{{replayDir}}/"
 				+ "?recursive=true&delay=60000"
 				+ "&filterFile=${file:onlyname} not contains '_processed' and ${file:onlyname} contains '.SC2Replay'")
 
@@ -50,32 +50,32 @@ public class UploadRoute extends RouteBuilder {
 			.setHeader(Exchange.HTTP_QUERY, simple("doc[title]=${file:onlyname}"))
 			.setHeader(Exchange.HTTP_METHOD, constant(HttpMethods.GET))
 			.enrich("http4://{{config.signature.url}}", new SignatureRequestAggregationStrategy())
-
-			// perform login to ggTracker
-			.doTry()
-				.to("bean:httpPostBean?method=login")
-			.endDoTry()
-			.doCatch(Exception.class)
-				.log(">>> message: ${exception.message}")
-			.end()
-
+			
 			// perform multipart upload to s3
 			.doTry()
-				.to("bean:httpPostBean?method=upload")
+				.to("bean:multipartUploadBean?method=upload")
 			.endDoTry()
 			.doCatch(Exception.class)
 				.log(">>> message: ${exception.message}")
 			.end()
-
-			// link s3 upload to ggTracker
-			.doTry()
-				.to("bean:httpPostBean?method=linkUpload")
-			.endDoTry()
-			.doCatch(Exception.class)
-				.log(">>> message: ${exception.message}")
-			.end()
-
+		
 			// rename file to prevent duplicate uploads
-			.to("file:?fileName=${file:parent}/${file:name.noext}_processed.SC2Replay");
+			.to("file:?fileName=${file:parent}/${file:name.noext}_processed.SC2Replay")		
+			
+			// login to ggTracker
+			.setBody(constant("user[email]={{user}}&user[password]={{password}}"))
+			.setHeader(Exchange.HTTP_METHOD, constant(HttpMethods.POST.name()))
+			.setHeader(Exchange.CONTENT_TYPE, constant("application/x-www-form-urlencoded; charset: UTF-8"))
+			.setHeader(Exchange.CONTENT_ENCODING, constant("UTF-8"))
+			.to("http4://{{config.login.url}}?throwExceptionOnFailure=false")
+					
+			// link s3 upload to ggTracker
+			.removeHeader(Exchange.HTTP_QUERY)
+			.setBody(simple("file_name=${file:onlyname}&s3_key=${header.key}&channel={{config.replay.channel}}"))
+			.setHeader(Exchange.HTTP_METHOD, constant(HttpMethods.POST.name()))
+			.setHeader(Exchange.CONTENT_TYPE, constant("application/x-www-form-urlencoded; charset: UTF-8"))
+			.setHeader(Exchange.CONTENT_ENCODING, constant("UTF-8"))
+			.setHeader("Cookie", simple("${header.Set-Cookie}"))
+			.to("http4://{{config.drop.url}}");
 	}
 }
