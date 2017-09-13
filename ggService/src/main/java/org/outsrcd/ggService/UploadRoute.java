@@ -11,6 +11,9 @@ import org.apache.camel.processor.aggregate.AggregationStrategy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class UploadRoute extends RouteBuilder {
+	
+	private static final String FORM_URLENCODED_TYPE = "application/x-www-form-urlencoded; charset: UTF-8";
+	private static final String UTF_8 = "UTF-8";
 
 	class SignatureRequestAggregationStrategy implements AggregationStrategy {
 
@@ -44,7 +47,8 @@ public class UploadRoute extends RouteBuilder {
 				+ "&filterFile=${file:onlyname} not contains '_processed' and ${file:onlyname} contains '.SC2Replay'")
 
 			// throttle to 1 upload per second max as per ggTracker maintainer request
-			.throttle(1).log(">>> found ${file:onlyname}")
+			.throttle(1)
+			.log(">>> found ${file:onlyname}")
 
 			// make request to sign the upload for s3 using enrich EIP
 			.setHeader(Exchange.HTTP_QUERY, simple("doc[title]=${file:onlyname}"))
@@ -52,29 +56,24 @@ public class UploadRoute extends RouteBuilder {
 			.enrich("http4://{{config.signature.url}}", new SignatureRequestAggregationStrategy())
 			
 			// perform multipart upload to s3
-			.doTry()
-				.to("bean:multipartUploadBean?method=upload")
-			.endDoTry()
-			.doCatch(Exception.class)
-				.log(">>> message: ${exception.message}")
-			.end()
-		
+			.to("bean:multipartUploadBean?method=upload")
+
 			// rename file to prevent duplicate uploads
 			.to("file:?fileName=${file:parent}/${file:name.noext}_processed.SC2Replay")		
 			
 			// login to ggTracker
 			.setBody(constant("user[email]={{user}}&user[password]={{password}}"))
 			.setHeader(Exchange.HTTP_METHOD, constant(HttpMethods.POST.name()))
-			.setHeader(Exchange.CONTENT_TYPE, constant("application/x-www-form-urlencoded; charset: UTF-8"))
-			.setHeader(Exchange.CONTENT_ENCODING, constant("UTF-8"))
+			.setHeader(Exchange.CONTENT_TYPE, constant(FORM_URLENCODED_TYPE))
+			.setHeader(Exchange.CONTENT_ENCODING, constant(UTF_8))
 			.to("http4://{{config.login.url}}?throwExceptionOnFailure=false")
 					
 			// link s3 upload to ggTracker
 			.removeHeader(Exchange.HTTP_QUERY)
 			.setBody(simple("file_name=${file:onlyname}&s3_key=${header.key}&channel={{config.replay.channel}}"))
 			.setHeader(Exchange.HTTP_METHOD, constant(HttpMethods.POST.name()))
-			.setHeader(Exchange.CONTENT_TYPE, constant("application/x-www-form-urlencoded; charset: UTF-8"))
-			.setHeader(Exchange.CONTENT_ENCODING, constant("UTF-8"))
+			.setHeader(Exchange.CONTENT_TYPE, constant(FORM_URLENCODED_TYPE))
+			.setHeader(Exchange.CONTENT_ENCODING, constant(UTF_8))
 			.setHeader("Cookie", simple("${header.Set-Cookie}"))
 			.to("http4://{{config.drop.url}}");
 	}
