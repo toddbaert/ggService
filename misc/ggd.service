@@ -1,0 +1,11 @@
+[Unit]
+Description=ggService
+After=network.target
+
+[Service]
+User={system user}
+Type=simple
+ExecStart=/usr/bin/java -Duser='{user}' -Dpassword='{pass}' -DreplayDir='{replayDir}' -jar '{jar locaiton}' &
+
+[Install]
+WantedBy=graphical.target
